@@ -1,0 +1,14 @@
+featselect.py
+readme.rtf
+sparseNB.py
+.idea/encodings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/python_demo.iml
+.idea/workspace.xml
+.idea/inspectionProfiles/Project_Default.xml
+.vscode/launch.json
+__pycache__/NFS.cpython-36.pyc
+__pycache__/NFS.cpython-37.pyc
+__pycache__/sparseNB.cpython-36.pyc
+data/amzn.pkl

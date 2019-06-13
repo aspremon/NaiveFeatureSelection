@@ -1,4 +1,5 @@
 import numpy as np
+from numba import jit
 #import math
 #import time
 #import pdb
@@ -50,6 +51,32 @@ def class_prob(y,label = 0):
 	return {'pc1': len(idx)*1.0/n, 'pc2': (n-len(idx))*1.0/n}
 
 
+#@jit(nopython=True)
+def entr(x):
+	"""
+	Negative entropy function.
+
+	This returns sum_i x_i * log(x_i) 
+	"""
+	res = np.zeros(x.shape)
+	res[np.nonzero(x)] = x[np.nonzero(x)] * np.log(x[np.nonzero(x)])
+	return res
+
+
+#@jit(nopython=True)
+def fun(a,k,c,f1,f2):
+	"""
+	Auxialiary gradient function.
+	"""
+	h = c - f1 * np.log(a) - f2 * np.log(1 - a)
+	idx = np.argpartition(h, -k)[-k:]
+	#fval = sum(h[idx])
+	nabla_a = -f1 / a + f2 / (1 - a)
+	df = np.sum(nabla_a[idx])
+	return df
+
+
+#@jit(nopython=True)
 def nfs(X,y,k):
 	"""
 	Naive Feature Selection
@@ -76,8 +103,8 @@ def nfs(X,y,k):
 	"""
 
 	# First construct fp, fm, by summing feature vectors for each class
-	m = X.shape[1]
-	n = X.shape[0]
+	#m = X.shape[1]
+	#n = X.shape[0]
 	split = split_classes(X,y,label=1)
 	C1 = split['class1'].shape[0]
 	C2 = split['class2'].shape[0]
@@ -89,31 +116,16 @@ def nfs(X,y,k):
 	# Define dual objective function
 	alpha_low = 0
 	alpha_top = 1
-	def entr(x):
-		res = np.zeros(x.shape)
-		res[np.nonzero(x)] = x[np.nonzero(x)] * np.log(x[np.nonzero(x)])
-		return res
-
 	c = entr(f1) + entr(f2) - entr(f1+f2)
-	def fun(a):
-		h = c - f1 * np.log(a) - f2 * np.log(1 - a)
-		idx = np.argpartition(h, -k)[-k:]
-		fval = sum(h[idx])
-		nabla_s = np.zeros(np.shape(f1)) # TODO: No allocation should be made at this level (see below)
-		nabla_s[idx] = 1
-		nabla_a = -f1 / a + f2 / (1 - a)
-		df = np.dot(nabla_s, nabla_a)  # TODO: Replace this by sum over indices, allocation is expensive
-		return fval, df
-
 	# Solve dual problem by bisection
-	tol = 1e-5
+	tol = 1e-6
 	while (alpha_top - alpha_low) > 1e-10:
-		alpha = (alpha_top + alpha_low) / 2
-		fval, df = fun(alpha)
+		alpha = (alpha_top + alpha_low) / 2.0
+		df = fun(alpha,k,c,f1,f2)
 		# print(df)
 		if df > tol:
 			alpha_top = alpha
-		elif df < -tol:
+		elif df < -tol: # TODO: check if OK stopping on gradient?
 			alpha_low = alpha
 		else:
 			break
