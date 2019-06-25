@@ -25,7 +25,7 @@ with open("README.md", "r") as fh:
 check_dependencies()
 
 setup(
-    name="NFS",
+    name="NaiveFeatureSelection",
     version="0.0.1",
     author="Armin Askari, Alexandre d'Aspremont, Laurent El Ghaoui",
     author_email="aspremon@ens.fr",
