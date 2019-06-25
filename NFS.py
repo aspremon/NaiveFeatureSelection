@@ -1,5 +1,5 @@
 import numpy as np
-from numba import jit
+#from numba import jit
 #import math
 #import time
 #import pdb
@@ -141,6 +141,7 @@ def nfs(X,y,k):
 	ropt[mask] = qopt[mask]
 	qopt[idx] = sum(f1[idx] + f2[idx]) / (sum(f1[idx]) * sum(f1 + f2)) * f1[idx]
 	ropt[idx] = sum(f1[idx] + f2[idx]) / (sum(f2[idx]) * sum(f1 + f2)) * f2[idx]
+	objv=f1[np.nonzero(f1)].dot(np.log(qopt[np.nonzero(f1)]))+f2[np.nonzero(f2)].dot(np.log(ropt[np.nonzero(f2)]))
 
 	# Get linear classification rule: w0 + w'*x > 0
 	pc = class_prob(y,label=1)
@@ -155,4 +156,4 @@ def nfs(X,y,k):
 	w = w1 - w2
 
 	# Return results
-	return {'idx' : idx,'w0' : w0, 'w' : w,'q' : qopt, 'r' : ropt}
+	return {'idx' : idx,'w0' : w0, 'w' : w,'q' : qopt, 'r' : ropt, 'objv' : objv}
