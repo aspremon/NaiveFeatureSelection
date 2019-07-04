@@ -77,7 +77,7 @@ def fun(a,k,c,f1,f2):
 
 
 #@jit(nopython=True)
-def nfs(X,y,k):
+def naive_feature_selection(X,y,k):
 	"""
 	Naive Feature Selection
 

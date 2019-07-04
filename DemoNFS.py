@@ -1,9 +1,11 @@
-from NFS import *
+import numpy as np
+
 from sklearn.svm import LinearSVC
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import metrics
 
+from naive_feature_selection import naive_feature_selection
 
 # Get 20newsgroup data set, cf. "Classification of text documents using sparse features" in sklearn doc.
 print("Testing NFS ...")
@@ -39,7 +41,7 @@ feature_names = vectorizer.get_feature_names()
 
 # Test Naive Feature Selection, followed by l2 SVM
 k=100 # Target number of features
-nfs_res=nfs(X_train,y_train,k)
+nfs_res=naive_feature_selection(X_train,y_train,k)
 clfsv = LinearSVC(random_state=0, tol=1e-5)
 clfsv.fit(X_train[:,nfs_res['idx']], y_train==1)
 y_pred_NFS = clfsv.predict(X_test[:,nfs_res['idx']])
