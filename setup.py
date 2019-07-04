@@ -10,7 +10,7 @@ setup(
     author_email="aspremon@ens.fr",
     packages=find_packages(),
     python_requires=">=3.5.0",
-    install_requires=["numpy"],
+    install_requires=["scikit-learn"],
     description="Naive Feature Selection",
     long_description=long_description,
     long_description_content_type="text/markdown",
