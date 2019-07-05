@@ -1,1 +1,1 @@
-from .naive_feature_selection import naive_feature_selection
+from .naive_feature_selection import NaiveFeatureSelection

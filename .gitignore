@@ -225,3 +225,9 @@ dmypy.json
 .history
 
 # End of https://www.gitignore.io/api/python,visualstudiocode,pycharm
+.idea/encodings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/python_demo.iml
+.idea/inspectionProfiles/Project_Default.xml
+.vscode/launch.json
