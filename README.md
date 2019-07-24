@@ -1,4 +1,5 @@
-﻿NFS: Naive Feature Selection
+
+NFS: Naive Feature Selection
 =======
 
 This package solves the Naive Feature Selection problem described in [the paper](https://arxiv.org/abs/1905.09884).
@@ -9,26 +10,23 @@ This package solves the Naive Feature Selection problem described in [the paper]
 pip install git+https://github.com/aspremon/NaiveFeatureSelection
 ```
 
-# Usage 
+# Usage
 
 ## Minimal usage script
 
-The [DemoNFS.py](DemoNFS.py) script loads the *20 newsgroups* text data set from
-*scikit-learn* and compares accuracy of Naive Feature Selection (followed by
-SVM), with that of Recursive Feature Elimination (select features by SVM, and
-run SVM a second time).
+The [DemoNFS.py](DemoNFS.py) script loads the *20 newsgroups* text data set from *scikit-learn* and reports accuracy of Naive Feature Selection, followed by SVC using the selected features.
 
-To run the `DemoNFS.py` script:
+The package is compatible with *scikit-learn*'s *Fit-Transform* paradigm. To demonstrate this, [DemoNFS.py](DemoNFS.py) runs the same test using the *pipeline* package from *scikit-learn* and performs cross validation using *GridSearchCV* from *sklearn.model_selection*.
+
+To run the `DemoNFS.py` script, type
 ```
 python DemoNFS.py
 ```
 
-which should produce the following output:
-
+This should produce the following output
 
 ```
 Testing NFS ...
-
 Loading 20 newsgroups dataset for categories:
 ['sci.med', 'sci.space']
 
@@ -38,12 +36,16 @@ n_samples: 1187, n_features: 21368
 Extracting features from the test data using the same vectorizer
 n_samples: 790, n_features: 21368
 
-NFS accuracy: 0.843
-RFE accuracy: 0.592
+NFS accuracy:   0.843
 
 Space features:
-['commercial', 'launches', 'project', 'launched', 'data', 'dryden', 'mining', 'planetary', 'proton', 'missions', 'cost', 'command', 'comet', 'jupiter', 'apollo', 'russian', 'aerospace', 'sun', 'mary', 'payload', 'gravity', 'pat', 'satellites', 'software', 'centaur', 'astronomy', 'landing', 'shafer', 'built', 'titan', 'program', 'vehicle', 'ssto', 'funding', 'flight', 'orbit', 'orbital', 'nasa', 'government', 'moon', 'mission', 'earth', 'allen', 'dc', 'ames', 'rocket', 'rockets', 'satellite', 'mars', 'lunar', 'shuttle', 'solar', 'billion', 'space', 'spacecraft', 'station', 'launch']
+['aerospace', 'allen', 'ames', 'apollo', 'astronomy', 'billion', 'built', 'centaur', 'comet', 'command', 'commercial', 'cost', 'data', 'dc', 'dryden', 'earth', 'flight', 'funding', 'government', 'gravity', 'jupiter', 'landing', 'launch', 'launched', 'launches', 'lunar', 'mars', 'mary', 'mining', 'mission', 'missions', 'moon', 'nasa', 'orbit', 'orbital', 'pat', 'payload', 'planetary', 'program', 'project', 'proton', 'rocket', 'rockets', 'russian', 'satellite', 'satellites', 'shafer', 'shuttle', 'software', 'solar', 'space', 'spacecraft', 'ssto', 'station', 'sun', 'titan', 'vehicle']
 
 Med features:
-['med', 'yeast', 'diseases', 'allergic', 'doctors', 'symptoms', 'syndrome', 'diagnosed', 'health', 'drugs', 'therapy', 'candida', 'seizures', 'lyme', 'food', 'brain', 'foods', 'geb', 'pain', 'gordon', 'patient', 'n3jxp', 'patients', 'msg', 'pitt', 'dsl', 'drug', 'doctor', 'disease', 'diet', 'surrender', 'medicine', 'medical', 'chastity', 'intellect', 'treatment', 'cancer', 'cadre', 'shameful', 'skepticism', 'blood', 'soon', 'banks']
+['allergic', 'banks', 'blood', 'brain', 'cadre', 'cancer', 'candida', 'chastity', 'diagnosed', 'diet', 'disease', 'diseases', 'doctor', 'doctors', 'drug', 'drugs', 'dsl', 'food', 'foods', 'geb', 'gordon', 'health', 'intellect', 'lyme', 'med', 'medical', 'medicine', 'msg', 'n3jxp', 'pain', 'patient', 'patients', 'pitt', 'seizures', 'shameful', 'skepticism', 'soon', 'surrender', 'symptoms', 'syndrome', 'therapy', 'treatment', 'yeast']
+
+Pipeline accuracy:      0.843
+
+Best cross validated k: 500
 ```
+

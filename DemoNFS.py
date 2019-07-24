@@ -52,6 +52,7 @@ X_testnew=nfs.transform(X_test)
 y_pred_NFS = clfsv.predict(X_testnew)
 score_nfs = metrics.accuracy_score(y_test==1, y_pred_NFS)
 print("NFS accuracy:\t%0.3f" % score_nfs)
+print("")
 
 # List selected features
 print('Space features:')
@@ -59,6 +60,7 @@ print([feature_names[np.nonzero(nfs.mask_)[0][i]] for i in range(kv) if clfsv.co
 print()
 print('Med features:')
 print([feature_names[np.nonzero(nfs.mask_)[0][i]] for i in range(kv) if clfsv.coef_[0][i]<0])
+print("")
 
 
 # %% Use pipeline instead
@@ -71,6 +73,7 @@ clf.fit(X_train, y_train)
 y_pred_pp = clf.predict(X_test)
 score_pp = metrics.accuracy_score(y_test==1, y_pred_pp)
 print("Pipeline accuracy:\t%0.3f" % score_pp)
+print("")
 
 
 # %% Cross validate to get best k
@@ -83,4 +86,4 @@ svcp = Pipeline([
 clf = GridSearchCV(svcp, parameters, cv=5)
 clf.fit(X_train, y_train)
 clf.best_params_
-clf.cv_results_['mean_test_score']
+print("Best cross validated k:\t%0.0f" % clf.best_params_['feature_selection__k'])
