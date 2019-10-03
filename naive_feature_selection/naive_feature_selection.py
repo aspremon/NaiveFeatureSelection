@@ -15,10 +15,12 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
     Parameters
     ----------
     k : number of variables to select.
+    alpha : typo robustness parameter (same alpha as in MNB from sklearn)
     """
 
-    def __init__(self, k=10):
+    def __init__(self, k, alpha=0):
         self.k = k
+        self.alpha = alpha
 
     def _split_classes(self, X, y, label=0): # TODO: Use scikit learn here
         """
@@ -84,6 +86,7 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
         df = np.sum(nabla_a[idx])
         return df
 
+
     def _naive_feature_selection(self, X, y, k):
         """
         Naive Feature Selection
@@ -93,7 +96,7 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
 
         max_{q,r}   fp^T log q + fm^T log r
 
-            s.t. 	\|q - r\|_1 <= k
+            s.t. 	\|q - r\|_0 <= k
                     0 <= q, r
                     sum(q) = 1, sum(r) = 1
 
@@ -111,10 +114,19 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
 
         # First construct fp, fm, by summing feature vectors for each class
         split = self._split_classes(X, y, label=1)
+
+        C1 = split['class1'].shape[0]
+        C2 = split['class2'].shape[0]
+
         f1 = np.sum(split["class1"], axis=0)
         f2 = np.sum(split["class2"], axis=0)
         f1 = np.squeeze(np.asarray(f1))
         f2 = np.squeeze(np.asarray(f2))
+
+        f1 += self.alpha*C1*np.ones(f1.shape)
+        f2 += self.alpha*C2*np.ones(f2.shape)
+
+
 
         # Define dual objective function
         alpha_low = 0
@@ -163,6 +175,7 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
         # Return results
         return {"idx": idx, "w0": w0, "w": w, "q": qopt, "r": ropt, "objv": objv}
 
+
     def _check_params(self, X, y):
         if not (self.k == "all" or 0 <= self.k <= X.shape[1]):
             raise ValueError(
@@ -200,6 +213,7 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
 
         self.mask_ = mask
         return self
+
 
     def _get_support_mask(self):
         check_is_fitted(self, "mask_")
