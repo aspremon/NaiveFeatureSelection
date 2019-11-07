@@ -100,7 +100,6 @@ def bisect_phi(f1, f2, k, tol: float, alpha_stop: float, f=None, c=None):
             alpha_low = alpha
         else:
             break
-    print(alpha)
     return idx
 
 
@@ -226,3 +225,12 @@ def sparse_naive_bayes(x: np.ndarray, y: np.ndarray, k: int, alpha: float = 1e-1
     f1, f2, pc1, pc2, = naive_bayes_data_averages(x, y, alpha=alpha)
 
     return sparse_naive_bayes_from_averages(f1, f2, pc1, pc2, k, **kwargs)
+
+
+def f_stats(f1, f2):
+    f = f1 + f2
+    return (
+            f,
+            np.sum(f),
+            negative_entropy(f1) + negative_entropy(f2) - negative_entropy(f)
+    )
