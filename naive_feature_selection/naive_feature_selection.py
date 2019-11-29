@@ -7,7 +7,11 @@ from sklearn.feature_selection.base import SelectorMixin
 from sklearn.utils import check_X_y
 from sklearn.utils.validation import check_is_fitted
 
-from naive_feature_selection.sparse_naive_bayes import sparse_naive_bayes
+from naive_feature_selection.sparse_naive_bayes import (
+    sparse_naive_bayes,
+    sparse_naive_bayes_from_averages,
+    fast_naive_bayes_data_averages,
+)
 
 
 class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
@@ -63,3 +67,55 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
     def _get_support_mask(self):
         check_is_fitted(self, "mask_")
         return self.mask_
+
+
+class StreamedNaiveFeatureSelection(NaiveFeatureSelection):
+
+    def __init__(self, k: Union[int, str], num_features: int = None, alpha: float = 1e-10):
+        super().__init__(k, alpha=alpha)
+        if num_features is None:
+            self.f1 = None
+            self.f2 = None
+        else:
+            self.f1 = np.zeros(num_features)
+            self.f2 = np.zeros(num_features)
+        self.num_features = num_features
+        self.num_class1 = 0
+        self.num_total = 0
+
+    def partial_fit(self, x, y):
+        x, y = check_X_y(x, y, ['csr', 'csc'], multi_output=True)
+        self._check_params(x, y)
+
+        if self.num_features is None:
+            self.num_features = x.shape[1]
+            self.f1 = np.zeros(self.num_features)
+            self.f2 = np.zeros(self.num_features)
+
+        f1, f2, pc1, pc2 = fast_naive_bayes_data_averages(x, y, alpha=0)
+
+        self.f1 += f1
+        self.f2 += f2
+
+        self.num_class1 += pc1 * x.shape[0]
+        self.num_total += x.shape[0]
+
+    def fit(self, x: np.ndarray = None, y: np.ndarray = None):
+        if x is not None and y is not None:
+            self.partial_fit(x, y)
+
+        if self.k == 'all':
+            mask = np.ones(self.num_features, dtype=bool)
+        elif self.k == 0:
+            mask = np.zeros(self.num_features, dtype=bool)
+        else:
+            pc1 = self.num_class1 / self.num_total
+            pc2 = 1 - pc1
+            f1 = self.f1 + self.alpha * self.num_class1
+            f2 = self.f2 + self.alpha * (self.num_total - self.num_class1)
+            res_nfs = sparse_naive_bayes_from_averages(f1, f2, pc1, pc2, self.k)
+            mask = np.zeros(self.num_features, dtype=bool)
+            mask[res_nfs['idx']] = 1
+
+        self.mask_ = mask
+        return self

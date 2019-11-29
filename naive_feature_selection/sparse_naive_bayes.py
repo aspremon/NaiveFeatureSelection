@@ -1,10 +1,14 @@
 import numpy as np
 
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.utils.validation import check_is_fitted
+from sklearn.model_selection import GridSearchCV
+
 
 _log_0 = -33.6648265
 
 
-def _split_classes(x, y, label=0):  # TODO: Use scikit learn here
+def _split_classes(x, y, label=0, mask: bool = False):  # TODO: Use scikit learn here
     """
     split_classes function
 
@@ -23,7 +27,12 @@ def _split_classes(x, y, label=0):  # TODO: Use scikit learn here
 
     Note: this only works for binary classification
     """
-    return x[np.where(y == label)[0], :], x[np.where(y != label)[0], :]
+    mask1 = y == label
+    mask2 = y != label
+    if mask:
+        return mask1, mask2
+    else:
+        return x[mask1, :], x[mask2, :]
 
 
 def _class_prob(y, label=0):  # TODO: Use scikit-learn here
@@ -197,6 +206,20 @@ def naive_bayes_data_averages(x, y, alpha: float = 1e-10):
     return f1, f2, pc1, pc2
 
 
+def fast_naive_bayes_data_averages(x, y, alpha: float = 1e-10):
+    mask1, mask2 = _split_classes(x, y, label=1, mask=True)
+
+    pc1 = np.mean(mask1)
+    pc2 = 1 - pc1
+
+    # The argument 'where' works on the last axis. Transposing the array that way
+    # allows to sum the right indices without copying x in memory.
+    f1 = np.sum(x.T, axis=1, where=mask1).T + alpha * pc1 * x.shape[0]
+    f2 = np.sum(x.T, axis=1, where=mask2).T + alpha * pc2 * x.shape[0]
+
+    return f1, f2, pc1, pc2
+
+
 def sparse_naive_bayes(x: np.ndarray, y: np.ndarray, k: int, alpha: float = 1e-10, **kwargs):
     """
     Sparse Naive Bayes
@@ -234,3 +257,54 @@ def f_stats(f1, f2):
             np.sum(f),
             negative_entropy(f1) + negative_entropy(f2) - negative_entropy(f)
     )
+
+
+def sparse_naive_bayes_path(x, y, alpha: float = 1e-10):
+    f1, f2, pc1, pc2 = naive_bayes_data_averages(x, y, alpha=alpha)
+    f, f_sum, c = f_stats(f1, f2)
+    ks = np.arange(1, x.shape[1] + 1)
+    ws = []
+    w0s = []
+    for k in ks:
+        snb = sparse_naive_bayes_from_averages(f1, f2, pc1, pc2, k, f=f, f_sum=f_sum, c=c)
+        w0s.append(snb['w0'])
+        ws.append(snb['w'])
+    return np.array(ws)
+
+
+class SparseMultinomialNB(BaseEstimator, ClassifierMixin):
+
+    def __init__(self, k: int = 1, alpha: float = 1e-10):
+        self.k = k
+        self.alpha = alpha
+
+    def fit(self, x, y):
+        snb = sparse_naive_bayes(x, y, k=self.k, alpha=self.alpha)
+        self.intercept_, self.coef_ = snb['w0'], snb['w']
+
+        return self
+
+    def predict(self, x):
+        check_is_fitted(self, ['intercept_', 'coef_'])
+        return self.intercept_ + x @ self.coef_ >= 0
+
+
+class SparseMultinomialNBCV:
+
+    def __init__(self, delta: int = 1, alpha: float = 1e-10, cv: int = 3):
+        self.delta = delta
+        self.alpha = alpha
+        self.cv = cv
+
+    def fit(self, x, y):
+        grid_search = GridSearchCV(
+            SparseMultinomialNB(),
+            param_grid={
+                'k': np.arange(1, x.shape[1], self.delta)
+            },
+            cv=self.cv
+        )
+        grid_search.fit(x, y)
+        self.coef_ = grid_search.best_estimator_.coef_
+
+        return self
