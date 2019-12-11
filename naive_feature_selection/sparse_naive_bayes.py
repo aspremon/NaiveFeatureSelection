@@ -198,8 +198,8 @@ def naive_bayes_data_averages(x, y, alpha: float = 1e-10):
     split1, split2 = _split_classes(x, y, label=1)
     c1, c2 = split1.shape[0], split2.shape[0]
 
-    f1 = np.squeeze(np.sum(split1, axis=0)) + alpha * c1
-    f2 = np.squeeze(np.sum(split2, axis=0)) + alpha * c2
+    f1 = np.squeeze(np.asarray(np.sum(split1, axis=0))) + alpha * c1
+    f2 = np.squeeze(np.asarray(np.sum(split2, axis=0))) + alpha * c2
 
     pc1, pc2 = _class_prob(y, label=1)
 
