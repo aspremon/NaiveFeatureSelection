@@ -274,11 +274,14 @@ def sparse_naive_bayes_path(x, y, alpha: float = 1e-10):
 
 class SparseMultinomialNB(BaseEstimator, ClassifierMixin):
 
-    def __init__(self, k: int = 1, alpha: float = 1e-10):
+    def __init__(self, k: int = 1, alpha: float = 1e-10, remove_min: bool = True):
         self.k = k
         self.alpha = alpha
+        self.remove_min = remove_min
 
     def fit(self, x, y):
+        if self.remove_min:
+            x = x - np.min(x)
         snb = sparse_naive_bayes(x, y, k=self.k, alpha=self.alpha)
         self.intercept_, self.coef_ = snb['w0'], snb['w']
 
@@ -291,20 +294,35 @@ class SparseMultinomialNB(BaseEstimator, ClassifierMixin):
 
 class SparseMultinomialNBCV:
 
-    def __init__(self, delta: int = 1, alpha: float = 1e-10, cv: int = 3):
+    def __init__(
+            self, delta: int = 1, alpha: float = 1e-10, cv: int = 3, remove_min: bool = True,
+            alphas: np.ndarray = None
+    ):
         self.delta = delta
         self.alpha = alpha
+        self.alphas = alphas
         self.cv = cv
+        self.remove_min = remove_min
 
     def fit(self, x, y):
+        if self.remove_min:
+            x = x - np.min(x)
+
+        param_grid = {
+            'k': np.arange(1, x.shape[1], self.delta)
+        }
+        if self.alphas is not None:
+            param_grid['alpha'] = self.alphas
+
         grid_search = GridSearchCV(
-            SparseMultinomialNB(),
-            param_grid={
-                'k': np.arange(1, x.shape[1], self.delta)
-            },
-            cv=self.cv
+            SparseMultinomialNB(alpha=self.alpha),
+            param_grid=param_grid,
+            cv=self.cv,
+            iid=False
         )
         grid_search.fit(x, y)
         self.coef_ = grid_search.best_estimator_.coef_
+        self.alpha_ = grid_search.best_estimator_.alpha
+        self.k_ = grid_search.best_estimator_.k
 
         return self
