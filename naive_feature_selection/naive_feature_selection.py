@@ -18,7 +18,7 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
     alpha : typo robustness parameter (same alpha as in MNB from sklearn)
     """
 
-    def __init__(self, k, alpha=1e-10):
+    def __init__(self, k=1, alpha=1e-10):
         self.k = k
         self.alpha = alpha
 
