@@ -45,8 +45,9 @@ feature_names = vectorizer.get_feature_names()
 
 # %% Test Naive Feature Selection, followed by l2 SVM
 kv = 100  # kv is target number of features
-nfs = NaiveFeatureSelection(k=kv)
+nfs = NaiveFeatureSelection(k=kv, alpha=1e-4)
 # Use fit_transform to extract selected features
+
 X_new = nfs.fit_transform(X_train, y_train)
 # Train SVM
 clfsv = LinearSVC(random_state=0, tol=1e-5)
@@ -83,7 +84,8 @@ print("")
 
 # %% Cross validate to get best k
 from sklearn.model_selection import GridSearchCV
-parameters = {'feature_selection__k': [10, 100, 500]}
+parameters = {'feature_selection__k': [10, 100, 500], 
+  'feature_selection__alpha': [1e-10,1e-5,1e-3,1e-2,1e-1, 1, 10, 100]}
 svcp = Pipeline([
   ('feature_selection', NaiveFeatureSelection()),
   ('classification', LinearSVC())
@@ -91,4 +93,5 @@ svcp = Pipeline([
 clf = GridSearchCV(svcp, parameters, cv=5)
 clf.fit(X_train, y_train)
 clf.best_params_
-print("Best cross validated k:\t%0.0f" % clf.best_params_['feature_selection__k'])
+print("Best cross validated k: " + str(clf.best_params_['feature_selection__k']))
+print("Best cross validated alpha: " + str(clf.best_params_['feature_selection__alpha']))
