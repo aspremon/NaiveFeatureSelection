@@ -3,6 +3,7 @@ from sklearn.base import BaseEstimator
 from sklearn.feature_selection.base import SelectorMixin
 from sklearn.utils import check_X_y
 from sklearn.utils.validation import check_is_fitted
+from scipy.sparse import issparse
 
 
 ######################################################################
@@ -18,7 +19,7 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
     alpha : typo robustness parameter (same alpha as in MNB from sklearn)
     """
 
-    def __init__(self, k=1, alpha=1e-10):
+    def __init__(self, k='all', alpha=1e-10):
         self.k = k
         self.alpha = alpha
 
@@ -176,6 +177,80 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
         return {"idx": idx, "w0": w0, "w": w, "q": qopt, "r": ropt, "objv": objv}
 
 
+    def _binary_naive_feature_selection(self, X, y, k):
+        """
+        Binary Naive Feature Selection
+
+        Description: Function that solves the following bernoulli naive Bayes
+        training problem, written
+
+        max_{q,r}   fp^T log q + fm^T log r
+
+            s.t.    \|q - r\|_0 <= k
+                    0 <= q, r <=1
+                   
+
+        Arguments:
+            - X: training data as a n x m matrix (n datapoints
+            with m features per data point)
+            - Y: binary class labels for the n different points (one of the labels should be 1)
+            - k: target cardinality for vector in linear classification rule
+
+        Returns:
+            - idx:  Index of selected features
+            - q,r:  Solutions reconstructed from optimal dual solution
+            - w0,w: linear classification rule: w0 + w'*x > 0, where w is k sparse.
+        """
+
+        # First construct fp, fm, by summing feature vectors for each class
+        split = self._split_classes(X, y, label=1)
+
+        C1 = split['class1'].shape[0]
+        C2 = split['class2'].shape[0]
+        n = C1 + C2
+
+        f1 = np.sum(split["class1"], axis=0)
+        f2 = np.sum(split["class2"], axis=0)
+        f1 = np.squeeze(np.asarray(f1))
+        f2 = np.squeeze(np.asarray(f2))
+
+        f1 += self.alpha*C1*np.ones(f1.shape)
+        f2 += self.alpha*C2*np.ones(f2.shape)
+
+        v = self._entr(f1+f2) - (f1+f2)*np.log(n) + self._entr(n-f1-f2) - (n-f1-f2)*np.log(n)
+        wp = self._entr(f1) - f1*np.log(C1) + self._entr(C1-f1) - f1*np.log(C1)
+        wm = self._entr(f2) - f2*np.log(C2) + self._entr(C2-f2) - f2*np.log(C2)
+
+
+        idx = np.argpartition(wp+wm-v, -k)[-k:]
+        mask = np.ones(len(f1), dtype=bool)  # all elements included/True.
+        mask[idx] = False
+        qopt = np.zeros(len(f1))
+        ropt = np.zeros(len(f2))
+        qopt[mask] = (f1[mask] + f2[mask]) / (C1 + C2)
+        ropt[mask] = qopt[mask]
+        qopt[idx] = f1[idx]/C1
+        ropt[idx] = f2[idx]/C2
+        objv = f1[np.nonzero(f1)].dot(np.log(qopt[np.nonzero(f1)])) + f2[
+            np.nonzero(f2)
+        ].dot(np.log(ropt[np.nonzero(f2)]))
+
+        # Get linear classification rule: w0 + w'*x > 0
+        pc = self._class_prob(y, label=1)
+        w0 = np.log(pc["pc1"]) - np.log(pc["pc2"])
+        with np.errstate(divide="ignore"):
+            w1 = np.log(qopt)
+            idx_inf = np.isinf(w1)
+            w1[idx_inf] = -33.6648265  # essentially the 0 entries, log(0) to -33.6648
+            w2 = np.log(ropt)
+            idx_inf = np.isinf(w2)
+            w2[idx_inf] = -33.6648265
+        w = w1 - w2
+
+        # Return results
+        return {"idx": idx, "w0": w0, "w": w, "q": qopt, "r": ropt, "objv": objv}
+
+
     def _check_params(self, X, y):
         if not (self.k == "all" or 0 <= self.k <= X.shape[1]):
             raise ValueError(
@@ -201,11 +276,16 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
         # Check params
         X, y = check_X_y(X, y, ["csr", "csc"], multi_output=True)
         self._check_params(X, y)
+
         # Get features
         if self.k == "all":
             mask = np.ones(X.shape[1], dtype=bool)
         elif self.k == 0:
             mask = np.zeros(X.shape[1], dtype=bool)
+        elif self._is_binary(X):
+            res_nfs = self._binary_naive_feature_selection(X, y, self.k)
+            mask = np.zeros(X.shape[1], dtype=bool)
+            mask[res_nfs["idx"]] = 1
         else:
             res_nfs = self._naive_feature_selection(X, y, self.k)
             mask = np.zeros(X.shape[1], dtype=bool)
@@ -218,4 +298,12 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
     def _get_support_mask(self):
         check_is_fitted(self, "mask_")
         return self.mask_
+
+
+    def _is_binary(self,X):
+        if issparse(X):
+            return (X != X.astype(bool)).nnz==0
+        if (np.array_equal(X, X.astype(bool))):
+            return True
+        return False
 
