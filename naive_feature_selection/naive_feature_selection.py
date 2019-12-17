@@ -73,7 +73,8 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
         This returns sum_i x_i * log(x_i) 
         """
         res = np.zeros(x.shape)
-        res[np.nonzero(x)] = x[np.nonzero(x)] * np.log(x[np.nonzero(x)])
+        idx = np.where(x >= 1e-8) #more robust than using np.nonzero(x)
+        res[idx] = x[idx] * np.log(x[idx])
         return res
 
     def _fun(self, a, k, c, f1, f2):
@@ -126,8 +127,6 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
 
         f1 += self.alpha*C1*np.ones(f1.shape)
         f2 += self.alpha*C2*np.ones(f2.shape)
-
-
 
         # Define dual objective function
         alpha_low = 0
@@ -207,7 +206,7 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
 
         C1 = split['class1'].shape[0]
         C2 = split['class2'].shape[0]
-        n = C1 + C2
+        
 
         f1 = np.sum(split["class1"], axis=0)
         f2 = np.sum(split["class2"], axis=0)
@@ -216,6 +215,12 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
 
         f1 += self.alpha*C1*np.ones(f1.shape)
         f2 += self.alpha*C2*np.ones(f2.shape)
+
+        #laplace smoothing is like missing counts, so we need to add them
+        #to our total counts in C1 and C2 respectively
+        C1 += self.alpha  
+        C2 += self.alpha
+        n = C1 + C2
 
         v = self._entr(f1+f2) - (f1+f2)*np.log(n) + self._entr(n-f1-f2) - (n-f1-f2)*np.log(n)
         wp = self._entr(f1) - f1*np.log(C1) + self._entr(C1-f1) - f1*np.log(C1)
