@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import GridSearchCV
+from sklearn.naive_bayes import MultinomialNB
 
 
 _log_0 = -33.6648265
@@ -296,13 +297,14 @@ class SparseMultinomialNBCV:
 
     def __init__(
             self, delta: int = 1, alpha: float = 1e-10, cv: int = 3, remove_min: bool = True,
-            alphas: np.ndarray = None
+            alphas: np.ndarray = None, jointly: bool = False
     ):
         self.delta = delta
         self.alpha = alpha
         self.alphas = alphas
         self.cv = cv
         self.remove_min = remove_min
+        self.jointly = jointly
 
     def fit(self, x, y):
         if self.remove_min:
@@ -311,8 +313,18 @@ class SparseMultinomialNBCV:
         param_grid = {
             'k': np.arange(1, x.shape[1], self.delta)
         }
-        if self.alphas is not None:
-            param_grid['alpha'] = self.alphas
+        if self.jointly:
+            if self.alphas is not None:
+                param_grid['alpha'] = self.alphas
+        else:
+            alpha_grid_search = GridSearchCV(
+                MultinomialNB(),
+                param_grid={'alpha': np.logspace(-10, 0, 20)},
+                cv=3,
+                iid=False
+            )
+            alpha_grid_search.fit(x, y)
+            self.alpha = alpha_grid_search.best_estimator_.alpha
 
         grid_search = GridSearchCV(
             SparseMultinomialNB(alpha=self.alpha),
