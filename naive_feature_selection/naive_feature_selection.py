@@ -285,6 +285,8 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
         # Get features
         mask = np.zeros(X.shape[1], dtype=bool)
         scores = None
+        if self.k == "all":
+            mask = np.ones(X.shape[1], dtype=bool)
         elif self._is_binary(X):
             res_nfs = self._binary_naive_feature_selection(X, y, self.k)
             mask[res_nfs["idx"]] = 1
