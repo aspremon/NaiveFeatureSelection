@@ -283,17 +283,15 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
         self._check_params(X, y)
 
         # Get features
-        if self.k == 0:
-            mask = np.zeros(X.shape[1], dtype=bool)
+        mask = np.zeros(X.shape[1], dtype=bool)
+        if self.k == 0 or self.k == "all":
             scores = np.zeros(X.shape[1], dtype=bool)
         elif self._is_binary(X):
             res_nfs = self._binary_naive_feature_selection(X, y, self.k)
-            mask = np.zeros(X.shape[1], dtype=bool)
             mask[res_nfs["idx"]] = 1
             scores = np.square(res_nfs["w"])
         else:
             res_nfs = self._naive_feature_selection(X, y, self.k)
-            mask = np.zeros(X.shape[1], dtype=bool)
             mask[res_nfs["idx"]] = 1
             scores = np.square(res_nfs["w"])
 
