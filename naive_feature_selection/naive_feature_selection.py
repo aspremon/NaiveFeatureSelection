@@ -283,25 +283,27 @@ class NaiveFeatureSelection(BaseEstimator, SelectorMixin):
         self._check_params(X, y)
 
         # Get features
+        mask = np.zeros(X.shape[1], dtype=bool)
+        scores = None
         if self.k == "all":
             mask = np.ones(X.shape[1], dtype=bool)
-        elif self.k == 0:
-            mask = np.zeros(X.shape[1], dtype=bool)
         elif self._is_binary(X):
             res_nfs = self._binary_naive_feature_selection(X, y, self.k)
-            mask = np.zeros(X.shape[1], dtype=bool)
             mask[res_nfs["idx"]] = 1
+            scores = np.square(res_nfs["w"])
         else:
             res_nfs = self._naive_feature_selection(X, y, self.k)
-            mask = np.zeros(X.shape[1], dtype=bool)
             mask[res_nfs["idx"]] = 1
+            scores = np.square(res_nfs["w"])
 
         self.mask_ = mask
+        if scores is not None:
+            self.scores_ = scores
         return self
 
 
     def _get_support_mask(self):
-        check_is_fitted(self, "mask_")
+        check_is_fitted(self)
         return self.mask_
 
 
